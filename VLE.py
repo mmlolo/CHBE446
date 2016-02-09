@@ -2,6 +2,7 @@ import numpy as np, matplotlib.pyplot as mpl_plt, scipy.optimize as sci_opt
 
 # K, Pa
 Tc, Pc = 647, 22064000
+# 1 atm
 P = 101325
 # molar mass
 LiCl, H2O = 42.394, 18.01
@@ -65,7 +66,7 @@ def convert_RH_to_Pa(RH, T):
 
 
 # Input T is in F
-def plot(Tin, Tout, Treg, RHin, RHout):
+def plot_VLE(Tin, Tout, Treg, RHin, RHout):
     Tin, Tout, Treg = convert_F_to_C(Tin), convert_F_to_C(Tout), convert_F_to_C(Treg),
 
     #linspace(0,1,100) generates 100 numbers between 0 and 1
@@ -121,15 +122,30 @@ def get_k(T):
     return (P_hi + P_low) / P / 2
 
 
-def find_water_removed(water, RH, T):
-    K = get_k()
+def find_water_removed(x_in, RH, T):
+    T = convert_F_to_C(T)
+    K = get_k(T)
+    # 50 mol/s basis for air
     V_in = 50
-    L_in = 1 + water
-    SH = (RH * p_vap_water(T) * 0.622) / (P * (1 - RH * 0.378 * p_vap_water(T)))
+    # 1 mol/s basis for LiCl -> L_in * x_in = 1
+    L_in = 1 / x_in
     A = L_in/K*V_in
     percent_abs = (np.power(A, 2) - A) / (np.power(A, 2) - 1)
-    return V_in * SH * percent_abs
+    return V_in * x_in * percent_abs
 
 
-plot(72, 85, 105, .6, .8)
-print(find_operating_range(72, 85, 105, .6, .8, .1))
+def plot_water_removed():
+    range = find_operating_range(72, 85, 105, .6, .8, .1)
+    x_range = np.linspace(range[0], range[1], 100)
+    y_range = find_water_removed(x_range, .6, 72)
+
+    mpl_plt.plot(x_range, y_range)
+    mpl_plt.xlabel("LiCl mole fraction")
+    mpl_plt.ylabel("Water Removed (mol/s per mol/s of LiCl)")
+    mpl_plt.savefig("Water_Removed.png")
+    mpl_plt.show()
+
+    return
+
+# plot_VLE(72, 85, 105, .6, .8)
+plot_water_removed()
